@@ -91,6 +91,31 @@ def show_elevation_heatmap(data, rows, cols):
     plt.tight_layout()
     plt.show()
 
+def show_comparison_heatmap(original_data, sorted_data, rows, cols):
+    if not original_data or not sorted_data:
+        return
+
+    original_grid = np.array([e[2] for e in original_data]).reshape((rows, cols))
+    sorted_grid = np.array([e[2] for e in sorted_data]).reshape((rows, cols))
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    im1 = axes[0].imshow(original_grid, cmap='terrain', aspect='auto', origin='lower')
+    axes[0].set_title("Original Elevation Grid")
+    fig.colorbar(im1, ax=axes[0], fraction=0.046, pad=0.04)
+
+    im2 = axes[1].imshow(sorted_grid, cmap='terrain', aspect='auto', origin='lower')
+    axes[1].set_title("Sorted Elevation Grid")
+    fig.colorbar(im2, ax=axes[1], fraction=0.046, pad=0.04)
+
+    for ax in axes:
+        ax.set_xlabel("Columns")
+        ax.set_ylabel("Rows")
+
+    plt.tight_layout()
+    plt.show()
+
+
 
 def reset_visualization_state(_, rows, cols):
     new_data = get_elevation_grid(rows, cols)
@@ -299,10 +324,14 @@ def run_visualizer(data, sort_func, rows, cols):
 
         if not sorted_once:
             start_time = time.time()
+            original_copy = data.copy()
             sort_func(data, screen, clock)
             sort_duration = time.time() - start_time
             sorted_once = True
             summary_lines = get_summary_text(data)
+
+            # ✅ Show pre/post comparison
+            show_comparison_heatmap(original_copy, data, rows, cols)
 
         draw_bars(screen, data, font, hover_index=hover_index)
 
