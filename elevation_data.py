@@ -4,7 +4,7 @@ from bridges.data_src_dependent import data_source
 import random
 
 def get_elevation_grid(rows=10, cols=10):
-    bridges = Bridges(0, "your_username", "your_api_key")  # Replace with your actual credentials
+    bridges = Bridges(0, "arionstern", "1435718270210")  # Replace with your actual credentials
 
     lat = round(random.uniform(-89.0, 88.0), 2)
     lon = round(random.uniform(-179.0, 178.0), 2)
