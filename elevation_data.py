@@ -3,7 +3,6 @@ from bridges.data_src_dependent import data_source
 import random
 
 def get_elevation_grid(rows=10, cols=10):
-    # Replace with your actual credentials if needed
     bridges = Bridges(0, "arionstern", "1435718270210")
 
     lat = round(random.uniform(-89.0, 88.0), 2)

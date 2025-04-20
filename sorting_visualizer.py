@@ -29,7 +29,7 @@ def draw_bars(screen, data, font, highlight=[], min_elev=None, max_elev=None, ho
 
         norm = (elev - min_elev) / elev_range
 
-        # 🌈 Apply selected color theme
+        #Apply selected color theme
         if color_theme == "terrain":
             red = int(255 * norm)
             green = int(255 * (1 - abs(norm - 0.5) * 2))
