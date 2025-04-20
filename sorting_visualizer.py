@@ -345,13 +345,21 @@ def run_visualizer(data, default_sort_func, rows, cols):
                         print(f"Selected: {name} Sort")
 
         if current_sort and not sorted_once:
+            # ✅ Show pre/post comparison
+            original_copy = original_data.copy()
             start_time = time.time()
             current_sort(data, screen, clock)
             sort_duration = time.time() - start_time
             sorted_once = True
             summary_lines = get_summary_text(data)
+            show_comparison_heatmap(original_copy, data, rows, cols)
 
-        draw_bars(screen, data, font)
+        # Hover bar info
+        mouse_x, _ = pygame.mouse.get_pos()
+        bar_width = max(1, WIDTH // len(data))
+        hover_index = mouse_x // bar_width if bar_width else None
+        draw_bars(screen, data, font, hover_index=hover_index)
+
 
         # Draw buttons
         for rect, name in buttons:
@@ -369,6 +377,16 @@ def run_visualizer(data, default_sort_func, rows, cols):
         if current_sort and sorted_once:
             label_time = font.render(f"Sort Time: {sort_duration:.2f}s", True, (255, 255, 255))
             screen.blit(label_time, (10, 50 + len(summary_lines) * 20))
+
+
+
+        if hover_index is not None and 0 <= hover_index < len(data):
+            lat, lon, elev, _ = data[hover_index]
+            hover_label = font.render(f"{lat:.2f}, {lon:.2f} → {elev:.2f} m", True, (255, 255, 0))
+            screen.blit(hover_label, (WIDTH - 250, HEIGHT - 40))
+
+        footer = font.render("R = Reset   |   ESC = Quit   |   Click a sort button", True, (180, 180, 180))
+        screen.blit(footer, (10, HEIGHT - 20))
 
         pygame.display.flip()
 
