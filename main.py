@@ -7,7 +7,8 @@ from sorting_visualizer import (
     merge_sort_visualized,
     insertion_sort_visualized,
     selection_sort_visualized,
-    heap_sort_visualized
+    heap_sort_visualized,
+    bubble_sort_visualized  # ✅ Added
 )
 
 def main():
@@ -37,21 +38,22 @@ def main():
     print("3. Insertion Sort")
     print("4. Selection Sort")
     print("5. Heap Sort")
+    print("6. Bubble Sort")  # ✅ Added to menu
 
-    choice = input("Enter 1–5: ").strip()
+    choice = input("Enter 1–6: ").strip()
 
     algo_map = {
         '1': ("Quick Sort", quick_sort_visualized),
         '2': ("Merge Sort", merge_sort_visualized),
         '3': ("Insertion Sort", insertion_sort_visualized),
         '4': ("Selection Sort", selection_sort_visualized),
-        '5': ("Heap Sort", heap_sort_visualized)
+        '5': ("Heap Sort", heap_sort_visualized),
+        '6': ("Bubble Sort", bubble_sort_visualized)  # ✅ Added
     }
 
     algo_name, algo_func = algo_map.get(choice, ("Quick Sort (default)", quick_sort_visualized))
     print(f"\nRunning: {algo_name}...\n")
 
-    # Add indexing for stable sorting
     indexed_list = [(lat, lon, elev, idx) for idx, (lat, lon, elev) in enumerate(elevation_list)]
     run_visualizer(indexed_list, algo_func, rows, cols)
 

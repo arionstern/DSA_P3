@@ -9,7 +9,7 @@ HEIGHT = 600
 BAR_WIDTH = 5
 FPS = 60
 
-def draw_bars(screen, data, font, highlight=[], min_elev=None, max_elev=None):
+def draw_bars(screen, data, font, highlight=[], min_elev=None, max_elev=None, hover_index=None):
     screen.fill((0, 0, 0))
     if not data:
         return
@@ -22,7 +22,7 @@ def draw_bars(screen, data, font, highlight=[], min_elev=None, max_elev=None):
     elev_range = max_elev - min_elev if max_elev != min_elev else 1
     bar_width = max(1, WIDTH // len(data))
 
-    for i, (_, _, elev, _) in enumerate(data):
+    for i, (lat, lon, elev, _) in enumerate(data):
         height = int((elev - min_elev) / elev_range * HEIGHT)
         x = i * bar_width
         y = HEIGHT - height
@@ -33,10 +33,28 @@ def draw_bars(screen, data, font, highlight=[], min_elev=None, max_elev=None):
         blue = int(255 * (1 - norm))
         color = (red, green, blue)
 
-        if i in highlight:
+        if i in highlight or i == hover_index:
             color = (255, 255, 255)
 
         pygame.draw.rect(screen, color, (x, y, bar_width, height))
+
+    draw_color_legend(screen, font)
+
+def draw_color_legend(screen, font):
+    legend_rect = pygame.Rect(10, HEIGHT - 30, 200, 10)
+    for x in range(legend_rect.width):
+        norm = x / legend_rect.width
+        red = int(255 * norm)
+        green = int(255 * (1 - abs(norm - 0.5) * 2))
+        blue = int(255 * (1 - norm))
+        color = (red, green, blue)
+        screen.set_at((legend_rect.x + x, legend_rect.y), color)
+
+    label_low = font.render("Low", True, (255, 255, 255))
+    label_high = font.render("High", True, (255, 255, 255))
+    screen.blit(label_low, (legend_rect.x, legend_rect.y - 15))
+    screen.blit(label_high, (legend_rect.x + legend_rect.width - 30, legend_rect.y - 15))
+
 
 def get_summary_text(data):
     if not data:
@@ -72,6 +90,7 @@ def show_elevation_heatmap(data, rows, cols):
     plt.tight_layout()
     plt.show()
 
+
 def reset_visualization_state(_, rows, cols):
     new_data = get_elevation_grid(rows, cols)
     show_elevation_heatmap(new_data, rows, cols)
@@ -79,8 +98,25 @@ def reset_visualization_state(_, rows, cols):
     indexed = [(lat, lon, elev, idx) for idx, (lat, lon, elev) in enumerate(new_data)]
     return indexed, new_summary
 
+
 def stable_key(item):
     return (item[2], item[3]) if len(item) > 3 else (item[2], 0)
+
+def bubble_sort_visualized(data, screen, clock):
+    font = pygame.font.SysFont("Arial", 14)
+    min_elev = min(e[2] for e in data)
+    max_elev = max(e[2] for e in data)
+
+    for i in range(len(data)):
+        for j in range(0, len(data) - i - 1):
+            if stable_key(data[j]) > stable_key(data[j + 1]):
+                data[j], data[j + 1] = data[j + 1], data[j]
+            draw_bars(screen, data, font, highlight=[j, j + 1], min_elev=min_elev, max_elev=max_elev)
+            pygame.display.flip()
+            pygame.time.wait(5)
+
+    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev)
+    pygame.display.flip()
 
 def quick_sort_visualized(data, screen, clock):
     font = pygame.font.SysFont("Arial", 14)
@@ -234,27 +270,51 @@ def run_visualizer(data, sort_func, rows, cols):
 
     sorted_once = False
     running = True
-
     data, summary_lines = reset_visualization_state(data, rows, cols)
+    sort_duration = 0
+    hover_info = ""
 
     while running:
+        hover_index = None
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
-                data, summary_lines = reset_visualization_state(data, rows, cols)
-                sorted_once = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    data, summary_lines = reset_visualization_state(data, rows, cols)
+                    sorted_once = False
+                if event.key == pygame.K_ESCAPE:
+                    running = False
+
+        mouse_x, _ = pygame.mouse.get_pos()
+        bar_width = max(1, WIDTH // len(data))
+        hover_index = mouse_x // bar_width
+        if 0 <= hover_index < len(data):
+            lat, lon, elev, _ = data[hover_index]
+            hover_info = f"({lat:.2f}, {lon:.2f}) → {elev:.2f} m"
+        else:
+            hover_info = ""
 
         if not sorted_once:
+            start_time = time.time()
             sort_func(data, screen, clock)
+            sort_duration = time.time() - start_time
             sorted_once = True
             summary_lines = get_summary_text(data)
 
-        draw_bars(screen, data, font)
+        draw_bars(screen, data, font, hover_index=hover_index)
 
         for i, line in enumerate(summary_lines):
             label = font.render(line, True, (255, 255, 255))
             screen.blit(label, (10, 10 + i * 20))
+
+        label_time = font.render(f"Sort Time: {sort_duration:.2f}s", True, (255, 255, 255))
+        screen.blit(label_time, (10, 10 + len(summary_lines) * 20))
+
+        if hover_info:
+            hover_label = font.render(hover_info, True, (255, 255, 0))
+            screen.blit(hover_label, (WIDTH - 280, HEIGHT - 40))
 
         pygame.display.flip()
 
