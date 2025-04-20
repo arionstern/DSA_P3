@@ -93,9 +93,69 @@ def merge_sort_visualized(data, screen, clock):
     draw_bars(screen, data)
     pygame.display.flip()
 
+def insertion_sort_visualized(data, screen, clock):
+    for i in range(1, len(data)):
+        key = data[i]
+        j = i - 1
+        while j >= 0 and data[j][2] > key[2]:
+            data[j + 1] = data[j]
+            j -= 1
+            draw_bars(screen, data, highlight=[j + 1])
+            pygame.display.flip()
+            pygame.time.wait(10)
+        data[j + 1] = key
+    draw_bars(screen, data)
+    pygame.display.flip()
 
 
-def run_visualizer(data, algo):
+def selection_sort_visualized(data, screen, clock):
+    n = len(data)
+    for i in range(n):
+        min_idx = i
+        for j in range(i + 1, n):
+            if data[j][2] < data[min_idx][2]:
+                min_idx = j
+            draw_bars(screen, data, highlight=[j, min_idx])
+            pygame.display.flip()
+            pygame.time.wait(10)
+        data[i], data[min_idx] = data[min_idx], data[i]
+    draw_bars(screen, data)
+    pygame.display.flip()
+
+def heap_sort_visualized(data, screen, clock):
+    def heapify(arr, n, i):
+        largest = i
+        l = 2 * i + 1
+        r = 2 * i + 2
+
+        if l < n and arr[l][2] > arr[largest][2]:
+            largest = l
+        if r < n and arr[r][2] > arr[largest][2]:
+            largest = r
+        if largest != i:
+            arr[i], arr[largest] = arr[largest], arr[i]
+            draw_bars(screen, data, highlight=[i, largest])
+            pygame.display.flip()
+            pygame.time.wait(10)
+            heapify(arr, n, largest)
+
+    n = len(data)
+    for i in range(n // 2 - 1, -1, -1):
+        heapify(data, n, i)
+
+    for i in range(n - 1, 0, -1):
+        data[i], data[0] = data[0], data[i]
+        draw_bars(screen, data, highlight=[0, i])
+        pygame.display.flip()
+        pygame.time.wait(10)
+        heapify(data, i, 0)
+
+    draw_bars(screen, data)
+    pygame.display.flip()
+
+
+
+def run_visualizer(data, sort_func):
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Elevation Sort Visualizer")
@@ -110,13 +170,11 @@ def run_visualizer(data, algo):
                 running = False
 
         if not sorted_once:
-            if algo == "quick":
-                quick_sort_visualized(data, screen, clock)
-            elif algo == "merge":
-                merge_sort_visualized(data, screen, clock)
+            sort_func(data, screen, clock)
             sorted_once = True
 
         draw_bars(screen, data)
         pygame.display.flip()
 
     pygame.quit()
+
