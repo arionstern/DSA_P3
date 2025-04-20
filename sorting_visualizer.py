@@ -40,6 +40,7 @@ def draw_bars(screen, data, font, highlight=[], min_elev=None, max_elev=None, ho
 
     draw_color_legend(screen, font)
 
+
 def draw_color_legend(screen, font):
     legend_rect = pygame.Rect(10, HEIGHT - 30, 200, 10)
     for x in range(legend_rect.width):
