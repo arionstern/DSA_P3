@@ -10,19 +10,24 @@ BAR_WIDTH = 5
 FPS = 60
 
 def draw_bars(screen, data, font, highlight=[], min_elev=None, max_elev=None, hover_index=None, color_theme="terrain"):
+    # Clear the screen
     screen.fill((0, 0, 0))
     if not data:
         return
 
+    # Calculate elevation range if not provided
     elevations = [e[2] for e in data]
     if min_elev is None or max_elev is None:
         max_elev = max(elevations)
         min_elev = min(elevations)
 
+    # Set bar width
     elev_range = max_elev - min_elev if max_elev != min_elev else 1
     bar_width = max(1, WIDTH // len(data))
 
+
     for i, (lat, lon, elev, _) in enumerate(data):
+        # Normalize elevation to bar height
         height = int((elev - min_elev) / elev_range * HEIGHT)
         x = i * bar_width
         y = HEIGHT - height
@@ -44,17 +49,22 @@ def draw_bars(screen, data, font, highlight=[], min_elev=None, max_elev=None, ho
         else:
             color = (255, 255, 255)
 
+        # Highlight hovered bar
         if i in highlight or i == hover_index:
             color = (255, 255, 255)
 
+        # Draw vertical bar
         pygame.draw.rect(screen, color, (x, y, bar_width, height))
 
+    # Draw elevation legend matching the theme
     draw_color_legend(screen, font, color_theme)
 
 
 def draw_color_legend(screen, font, color_theme):
+    # Define rectangle area
     legend_rect = pygame.Rect(10, HEIGHT - 30, 200, 10)
 
+    # Draw gradient bar from left to right
     for x in range(legend_rect.width):
         norm = x / legend_rect.width
 
@@ -76,6 +86,7 @@ def draw_color_legend(screen, font, color_theme):
 
         screen.set_at((legend_rect.x + x, legend_rect.y), color)
 
+    # Add labels
     label_low = font.render("Low", True, (255, 255, 255))
     label_high = font.render("High", True, (255, 255, 255))
     screen.blit(label_low, (legend_rect.x, legend_rect.y - 15))
@@ -86,12 +97,15 @@ def get_summary_text(data):
     if not data:
         return []
 
+    # Sort data by elevation
     sorted_data = sorted(data, key=lambda x: x[2])
     n = len(sorted_data)
 
+    #get points
     low = sorted_data[0]
     high = sorted_data[-1]
     median = sorted_data[n // 2]
+
 
     return [
         f"Lowest:  ({low[0]:.2f}, {low[1]:.2f}) → {low[2]:.2f} m",
@@ -104,9 +118,11 @@ def show_elevation_heatmap(data, rows, cols):
         print("Data size mismatch or missing.")
         return
 
+    # Convert flat elevation list into 2D grid
     elevations = [e[2] for e in data]
     grid = np.array(elevations).reshape((rows, cols))
 
+    # Plot using matplotlib
     plt.figure(figsize=(8, 6))
     plt.imshow(grid, cmap='terrain', aspect='auto', origin='lower')
     plt.colorbar(label='Elevation (m)')
@@ -120,15 +136,19 @@ def show_comparison_heatmap(original_data, sorted_data, rows, cols):
     if not original_data or not sorted_data:
         return
 
+    # Extract elevation values and reshape into 2D grids
     original_grid = np.array([e[2] for e in original_data]).reshape((rows, cols))
     sorted_grid = np.array([e[2] for e in sorted_data]).reshape((rows, cols))
 
+    #side-by-side plots
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
+    #original
     im1 = axes[0].imshow(original_grid, cmap='terrain', aspect='auto', origin='lower')
     axes[0].set_title("Original Elevation Grid")
     fig.colorbar(im1, ax=axes[0], fraction=0.046, pad=0.04)
 
+    #sorted
     im2 = axes[1].imshow(sorted_grid, cmap='terrain', aspect='auto', origin='lower')
     axes[1].set_title("Sorted Elevation Grid")
     fig.colorbar(im2, ax=axes[1], fraction=0.046, pad=0.04)
@@ -376,6 +396,7 @@ def run_visualizer(data, default_sort_func, rows, cols):
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("Arial", 14)
 
+    # Available sorting algorithms and color themes
     sort_funcs = {
         "Quick": quick_sort_visualized,
         "Merge": merge_sort_visualized,
@@ -388,6 +409,7 @@ def run_visualizer(data, default_sort_func, rows, cols):
     color_themes = ["terrain", "grayscale", "heat"]
     current_theme_index = 0
 
+    # Create buttons
     button_width = 100
     button_height = 25
     buttons = []
@@ -399,6 +421,7 @@ def run_visualizer(data, default_sort_func, rows, cols):
     sorted_once = False
     running = True
 
+    # Initial data and summary setup
     data, summary_lines = reset_visualization_state(data, rows, cols)
     original_data = data.copy()
     working_data = original_data.copy()
@@ -411,7 +434,7 @@ def run_visualizer(data, default_sort_func, rows, cols):
                 running = False
 
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:
+                if event.key == pygame.K_r: #Reset
                     data, summary_lines = reset_visualization_state(data, rows, cols)
                     original_data = data.copy()
                     working_data = original_data.copy()
@@ -419,16 +442,16 @@ def run_visualizer(data, default_sort_func, rows, cols):
                     current_sort = None
                     sort_duration = 0
                     metrics = {"comparisons": 0, "swaps": 0}
-                elif event.key == pygame.K_s:
+                elif event.key == pygame.K_s: # Shuffle
                     random.shuffle(working_data)
                     sorted_once = False
                     current_sort = None
                     sort_duration = 0
                     metrics = {"comparisons": 0, "swaps": 0}
                     summary_lines = get_summary_text(working_data)
-                elif event.key == pygame.K_c:
+                elif event.key == pygame.K_c:  # Switch color theme
                     current_theme_index = (current_theme_index + 1) % len(color_themes)
-                elif event.key == pygame.K_ESCAPE:
+                elif event.key == pygame.K_ESCAPE:  # Quit
                     running = False
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -444,6 +467,7 @@ def run_visualizer(data, default_sort_func, rows, cols):
         if current_sort and not sorted_once:
             original_copy = working_data.copy()
             start_time = time.time()
+            # Run selected sort
             current_sort(working_data, screen, clock, metrics, color_themes[current_theme_index])
             sort_duration = time.time() - start_time
             sorted_once = True
@@ -464,10 +488,12 @@ def run_visualizer(data, default_sort_func, rows, cols):
             label = font.render(name, True, (255, 255, 255))
             screen.blit(label, label.get_rect(center=rect.center))
 
+        # Draw summary text
         for i, line in enumerate(summary_lines):
             label = font.render(line, True, (255, 255, 255))
             screen.blit(label, (10, 50 + i * 20))
 
+        # Show sorting metrics
         if current_sort and sorted_once:
             label_time = font.render(f"Sort Time: {sort_duration:.2f}s", True, (255, 255, 255))
             screen.blit(label_time, (10, 50 + len(summary_lines) * 20))
@@ -476,11 +502,13 @@ def run_visualizer(data, default_sort_func, rows, cols):
             label_swaps = font.render(f"Swaps: {metrics['swaps']}", True, (255, 255, 255))
             screen.blit(label_swaps, (10, 50 + len(summary_lines) * 20 + 40))
 
+        # Show hover info
         if hover_index is not None and 0 <= hover_index < len(working_data):
             lat, lon, elev, _ = working_data[hover_index]
             hover_label = font.render(f"{lat:.2f}, {lon:.2f} → {elev:.2f} m", True, (255, 255, 0))
             screen.blit(hover_label, (WIDTH - 260, HEIGHT - 40))
 
+        # Footer text
         footer = font.render("R = Reset | S = Shuffle | C = Theme | ESC = Quit | Click a sort", True, (180, 180, 180))
         screen.blit(footer, (10, HEIGHT - 20))
 

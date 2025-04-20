@@ -3,8 +3,10 @@ from bridges.data_src_dependent import data_source
 import random
 
 def get_elevation_grid(rows=10, cols=10):
+    # Set up BRIDGES connection
     bridges = Bridges(0, "arionstern", "1435718270210")
 
+    #random starting point for the grid
     lat = round(random.uniform(-89.0, 88.0), 2)
     lon = round(random.uniform(-179.0, 178.0), 2)
 
@@ -14,6 +16,7 @@ def get_elevation_grid(rows=10, cols=10):
     max_lon = lon + (cols * 0.1)
 
     try:
+        # Fetch elevation data for the bounding box
         elevation_obj = data_source.get_elevation_data([min_lat, min_lon, max_lat, max_lon])
         grid = elevation_obj.data
 
