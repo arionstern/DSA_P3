@@ -287,64 +287,88 @@ def heap_sort_visualized(data, screen, clock):
     draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev)
     pygame.display.flip()
 
-def run_visualizer(data, sort_func, rows, cols):
+def run_visualizer(data, default_sort_func, rows, cols):
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Elevation Sort Visualizer")
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("Arial", 14)
 
+    sort_funcs = {
+        "Quick": quick_sort_visualized,
+        "Merge": merge_sort_visualized,
+        "Insertion": insertion_sort_visualized,
+        "Selection": selection_sort_visualized,
+        "Heap": heap_sort_visualized,
+        "Bubble": bubble_sort_visualized
+    }
+
+    # Create button rects
+    button_width = 100
+    button_height = 25
+    buttons = []
+    for i, name in enumerate(sort_funcs):
+        rect = pygame.Rect(10 + i * (button_width + 10), 10, button_width, button_height)
+        buttons.append((rect, name))
+
+    current_sort = None
     sorted_once = False
     running = True
+
     data, summary_lines = reset_visualization_state(data, rows, cols)
+    original_data = data.copy()  # 🔁 Store original unsorted data
     sort_duration = 0
-    hover_info = ""
 
     while running:
-        hover_index = None
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
                     data, summary_lines = reset_visualization_state(data, rows, cols)
+                    original_data = data.copy()
                     sorted_once = False
-                if event.key == pygame.K_ESCAPE:
+                    current_sort = None
+                    sort_duration = 0
+                elif event.key == pygame.K_ESCAPE:
                     running = False
 
-        mouse_x, _ = pygame.mouse.get_pos()
-        bar_width = max(1, WIDTH // len(data))
-        hover_index = mouse_x // bar_width
-        if 0 <= hover_index < len(data):
-            lat, lon, elev, _ = data[hover_index]
-            hover_info = f"({lat:.2f}, {lon:.2f}) → {elev:.2f} m"
-        else:
-            hover_info = ""
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mx, my = pygame.mouse.get_pos()
+                for rect, name in buttons:
+                    if rect.collidepoint(mx, my):
+                        current_sort = sort_funcs[name]
+                        data = original_data.copy()  # 🔁 Reset data before each sort
+                        sorted_once = False
+                        sort_duration = 0
+                        print(f"Selected: {name} Sort")
 
-        if not sorted_once:
+        if current_sort and not sorted_once:
             start_time = time.time()
-            original_copy = data.copy()
-            sort_func(data, screen, clock)
+            current_sort(data, screen, clock)
             sort_duration = time.time() - start_time
             sorted_once = True
             summary_lines = get_summary_text(data)
 
-            # ✅ Show pre/post comparison
-            show_comparison_heatmap(original_copy, data, rows, cols)
+        draw_bars(screen, data, font)
 
-        draw_bars(screen, data, font, hover_index=hover_index)
+        # Draw buttons
+        for rect, name in buttons:
+            color = (200, 50, 50) if sort_funcs[name] == current_sort else (50, 50, 200)
+            pygame.draw.rect(screen, color, rect)
+            label = font.render(name, True, (255, 255, 255))
+            label_rect = label.get_rect(center=rect.center)
+            screen.blit(label, label_rect)
 
+        # Draw summary + time
         for i, line in enumerate(summary_lines):
             label = font.render(line, True, (255, 255, 255))
-            screen.blit(label, (10, 10 + i * 20))
+            screen.blit(label, (10, 50 + i * 20))
 
-        label_time = font.render(f"Sort Time: {sort_duration:.2f}s", True, (255, 255, 255))
-        screen.blit(label_time, (10, 10 + len(summary_lines) * 20))
-
-        if hover_info:
-            hover_label = font.render(hover_info, True, (255, 255, 0))
-            screen.blit(hover_label, (WIDTH - 280, HEIGHT - 40))
+        if current_sort and sorted_once:
+            label_time = font.render(f"Sort Time: {sort_duration:.2f}s", True, (255, 255, 255))
+            screen.blit(label_time, (10, 50 + len(summary_lines) * 20))
 
         pygame.display.flip()
 
