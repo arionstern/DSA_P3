@@ -42,6 +42,7 @@ def main():
 
     choice = input("Enter 1–6: ").strip()
 
+
     algo_map = {
         '1': ("Quick Sort", quick_sort_visualized),
         '2': ("Merge Sort", merge_sort_visualized),
