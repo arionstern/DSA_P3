@@ -9,33 +9,18 @@ FPS = 60
 
 def draw_bars(screen, data, highlight=[]):
     screen.fill((0, 0, 0))
-    if not data:
-        return
-
-    elevations = [e[2] for e in data]
-    max_elev = max(elevations)
-    min_elev = min(elevations)
-    elev_range = max_elev - min_elev if max_elev != min_elev else 1
+    max_elev = max(e[2] for e in data)
+    min_elev = min(e[2] for e in data)
 
     bar_width = max(1, WIDTH // len(data))
 
     for i, (_, _, elev) in enumerate(data):
-        height = int((elev - min_elev) / elev_range * HEIGHT)
+        height = int((elev - min_elev) / (max_elev - min_elev + 1e-6) * HEIGHT)
         x = i * bar_width
-        y = HEIGHT - height
-
-        # Elevation gradient: blue (low) → green (mid) → red (high)
-        norm = (elev - min_elev) / elev_range
-        red = int(255 * norm)
-        green = int(255 * (1 - abs(norm - 0.5) * 2))
-        blue = int(255 * (1 - norm))
-        color = (red, green, blue)
-
+        color = (255, 255, 255)
         if i in highlight:
-            color = (255, 255, 255)
-
-        pygame.draw.rect(screen, color, (x, y, bar_width, height))
-
+            color = (255, 0, 0)
+        pygame.draw.rect(screen, color, (x, HEIGHT - height, bar_width, height))
 
 def quick_sort_visualized(data, screen, clock):
     def quick_sort(arr, low, high):
@@ -169,25 +154,20 @@ def heap_sort_visualized(data, screen, clock):
     pygame.display.flip()
 
 
+
 def run_visualizer(data, sort_func):
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Elevation Sort Visualizer")
     clock = pygame.time.Clock()
 
-    original_data = data.copy()
-    sorted_once = False
     running = True
+    sorted_once = False
 
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
-            # Press R to replay sort
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
-                data = original_data.copy()
-                sorted_once = False
 
         if not sorted_once:
             sort_func(data, screen, clock)
@@ -197,3 +177,4 @@ def run_visualizer(data, sort_func):
         pygame.display.flip()
 
     pygame.quit()
+
