@@ -169,7 +169,6 @@ def heap_sort_visualized(data, screen, clock):
     pygame.display.flip()
 
 
-
 def run_visualizer(data, sort_func):
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
