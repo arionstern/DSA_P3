@@ -51,6 +51,9 @@ def main():
     algo_name, algo_func = algo_map.get(choice, ("Quick Sort (default)", quick_sort_visualized))
     print(f"\nRunning: {algo_name}...\n")
 
+    # Add original index for sorting stability
+    elevation_list = [(lat, lon, elev, idx) for idx, (lat, lon, elev) in enumerate(elevation_list)]
+
     # Run the visualization with full context
     run_visualizer(elevation_list, algo_func, rows, cols)
 

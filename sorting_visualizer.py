@@ -9,21 +9,18 @@ HEIGHT = 600
 BAR_WIDTH = 5
 FPS = 60
 
-def draw_bars(screen, data, font, highlight=[], min_elev=None, max_elev=None):
+def draw_bars(screen, data, font, highlight=[]):
     screen.fill((0, 0, 0))
     if not data:
         return
 
     elevations = [e[2] for e in data]
-
-    if min_elev is None or max_elev is None:
-        max_elev = max(elevations)
-        min_elev = min(elevations)
-
+    max_elev = max(elevations)
+    min_elev = min(elevations)
     elev_range = max_elev - min_elev if max_elev != min_elev else 1
     bar_width = max(1, WIDTH // len(data))
 
-    for i, (_, _, elev) in enumerate(data):
+    for i, (_, _, elev, _) in enumerate(data):
         height = int((elev - min_elev) / elev_range * HEIGHT)
         x = i * bar_width
         y = HEIGHT - height
@@ -79,11 +76,11 @@ def reset_visualization_state(_, rows, cols):
     new_summary = get_summary_text(new_data)
     return new_data, new_summary
 
+def stable_key(item):
+    return (item[2], item[3])
+
 def quick_sort_visualized(data, screen, clock):
     font = pygame.font.SysFont("Arial", 14)
-    min_elev = min(e[2] for e in data)
-    max_elev = max(e[2] for e in data)
-
     def quick_sort(arr, low, high):
         if low < high:
             pi = partition(arr, low, high)
@@ -91,27 +88,24 @@ def quick_sort_visualized(data, screen, clock):
             quick_sort(arr, pi + 1, high)
 
     def partition(arr, low, high):
-        pivot = arr[high][2]
+        pivot = arr[high]
         i = low - 1
         for j in range(low, high):
-            draw_bars(screen, arr, font, highlight=[j, high], min_elev=min_elev, max_elev=max_elev)
+            draw_bars(screen, arr, font, highlight=[j, high])
             pygame.display.flip()
             time.sleep(0.01)
-            if arr[j][2] < pivot:
+            if stable_key(arr[j]) < stable_key(pivot):
                 i += 1
                 arr[i], arr[j] = arr[j], arr[i]
         arr[i + 1], arr[high] = arr[high], arr[i + 1]
         return i + 1
 
     quick_sort(data, 0, len(data) - 1)
-    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev)
+    draw_bars(screen, data, font)
     pygame.display.flip()
 
 def merge_sort_visualized(data, screen, clock):
     font = pygame.font.SysFont("Arial", 14)
-    min_elev = min(e[2] for e in data)
-    max_elev = max(e[2] for e in data)
-
     def merge_sort(arr, l, r):
         if l < r:
             m = (l + r) // 2
@@ -125,82 +119,78 @@ def merge_sort_visualized(data, screen, clock):
         i = j = 0
         k = l
         while i < len(left) and j < len(right):
-            arr[k] = left[i] if left[i][2] <= right[j][2] else right[j]
-            if left[i][2] <= right[j][2]: i += 1
-            else: j += 1
-            draw_bars(screen, data, font, highlight=[k], min_elev=min_elev, max_elev=max_elev)
+            if stable_key(left[i]) <= stable_key(right[j]):
+                arr[k] = left[i]
+                i += 1
+            else:
+                arr[k] = right[j]
+                j += 1
+            draw_bars(screen, data, font, highlight=[k])
             pygame.display.flip()
             time.sleep(0.01)
             k += 1
         while i < len(left):
             arr[k] = left[i]
             i += 1
-            draw_bars(screen, data, font, highlight=[k], min_elev=min_elev, max_elev=max_elev)
+            draw_bars(screen, data, font, highlight=[k])
             pygame.display.flip()
             time.sleep(0.01)
             k += 1
         while j < len(right):
             arr[k] = right[j]
             j += 1
-            draw_bars(screen, data, font, highlight=[k], min_elev=min_elev, max_elev=max_elev)
+            draw_bars(screen, data, font, highlight=[k])
             pygame.display.flip()
             time.sleep(0.01)
             k += 1
 
     merge_sort(data, 0, len(data) - 1)
-    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev)
+    draw_bars(screen, data, font)
     pygame.display.flip()
 
 def insertion_sort_visualized(data, screen, clock):
     font = pygame.font.SysFont("Arial", 14)
-    min_elev = min(e[2] for e in data)
-    max_elev = max(e[2] for e in data)
     for i in range(1, len(data)):
         key = data[i]
         j = i - 1
-        while j >= 0 and data[j][2] > key[2]:
+        while j >= 0 and stable_key(data[j]) > stable_key(key):
             data[j + 1] = data[j]
             j -= 1
-            draw_bars(screen, data, font, highlight=[j + 1], min_elev=min_elev, max_elev=max_elev)
+            draw_bars(screen, data, font, highlight=[j + 1])
             pygame.display.flip()
             pygame.time.wait(10)
         data[j + 1] = key
-    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev)
+    draw_bars(screen, data, font)
     pygame.display.flip()
 
 def selection_sort_visualized(data, screen, clock):
     n = len(data)
     font = pygame.font.SysFont("Arial", 14)
-    min_elev = min(e[2] for e in data)
-    max_elev = max(e[2] for e in data)
     for i in range(n):
         min_idx = i
         for j in range(i + 1, n):
-            if data[j][2] < data[min_idx][2]:
+            if stable_key(data[j]) < stable_key(data[min_idx]):
                 min_idx = j
-            draw_bars(screen, data, font, highlight=[j, min_idx], min_elev=min_elev, max_elev=max_elev)
+            draw_bars(screen, data, font, highlight=[j, min_idx])
             pygame.display.flip()
             pygame.time.wait(10)
         data[i], data[min_idx] = data[min_idx], data[i]
-    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev)
+    draw_bars(screen, data, font)
     pygame.display.flip()
 
 def heap_sort_visualized(data, screen, clock):
     font = pygame.font.SysFont("Arial", 14)
-    min_elev = min(e[2] for e in data)
-    max_elev = max(e[2] for e in data)
-
     def heapify(arr, n, i):
         largest = i
         l = 2 * i + 1
         r = 2 * i + 2
-        if l < n and arr[l][2] > arr[largest][2]:
+        if l < n and stable_key(arr[l]) > stable_key(arr[largest]):
             largest = l
-        if r < n and arr[r][2] > arr[largest][2]:
+        if r < n and stable_key(arr[r]) > stable_key(arr[largest]):
             largest = r
         if largest != i:
             arr[i], arr[largest] = arr[largest], arr[i]
-            draw_bars(screen, data, font, highlight=[i, largest], min_elev=min_elev, max_elev=max_elev)
+            draw_bars(screen, data, font, highlight=[i, largest])
             pygame.display.flip()
             pygame.time.wait(10)
             heapify(arr, n, largest)
@@ -210,11 +200,11 @@ def heap_sort_visualized(data, screen, clock):
         heapify(data, n, i)
     for i in range(n - 1, 0, -1):
         data[i], data[0] = data[0], data[i]
-        draw_bars(screen, data, font, highlight=[0, i], min_elev=min_elev, max_elev=max_elev)
+        draw_bars(screen, data, font, highlight=[0, i])
         pygame.display.flip()
         pygame.time.wait(10)
         heapify(data, i, 0)
-    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev)
+    draw_bars(screen, data, font)
     pygame.display.flip()
 
 def run_visualizer(data, sort_func, rows, cols):
