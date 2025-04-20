@@ -9,7 +9,7 @@ HEIGHT = 600
 BAR_WIDTH = 5
 FPS = 60
 
-def draw_bars(screen, data, font, highlight=[], min_elev=None, max_elev=None, hover_index=None):
+def draw_bars(screen, data, font, highlight=[], min_elev=None, max_elev=None, hover_index=None, color_theme="terrain"):
     screen.fill((0, 0, 0))
     if not data:
         return
@@ -28,10 +28,21 @@ def draw_bars(screen, data, font, highlight=[], min_elev=None, max_elev=None, ho
         y = HEIGHT - height
 
         norm = (elev - min_elev) / elev_range
-        red = int(255 * norm)
-        green = int(255 * (1 - abs(norm - 0.5) * 2))
-        blue = int(255 * (1 - norm))
-        color = (red, green, blue)
+
+        # 🌈 Apply selected color theme
+        if color_theme == "terrain":
+            red = int(255 * norm)
+            green = int(255 * (1 - abs(norm - 0.5) * 2))
+            blue = int(255 * (1 - norm))
+            color = (red, green, blue)
+        elif color_theme == "grayscale":
+            shade = int(255 * norm)
+            color = (shade, shade, shade)
+        elif color_theme == "heat":
+            color = plt.cm.inferno(norm)
+            color = tuple(int(c * 255) for c in color[:3])
+        else:
+            color = (255, 255, 255)
 
         if i in highlight or i == hover_index:
             color = (255, 255, 255)
@@ -39,6 +50,7 @@ def draw_bars(screen, data, font, highlight=[], min_elev=None, max_elev=None, ho
         pygame.draw.rect(screen, color, (x, y, bar_width, height))
 
     draw_color_legend(screen, font)
+
 
 
 def draw_color_legend(screen, font):
@@ -128,23 +140,24 @@ def reset_visualization_state(_, rows, cols):
 def stable_key(item):
     return (item[2], item[3]) if len(item) > 3 else (item[2], 0)
 
-def bubble_sort_visualized(data, screen, clock):
+def bubble_sort_visualized(data, screen, clock, metrics, color_theme):
     font = pygame.font.SysFont("Arial", 14)
     min_elev = min(e[2] for e in data)
     max_elev = max(e[2] for e in data)
 
     for i in range(len(data)):
         for j in range(0, len(data) - i - 1):
+            metrics["comparisons"] += 1
             if stable_key(data[j]) > stable_key(data[j + 1]):
                 data[j], data[j + 1] = data[j + 1], data[j]
-            draw_bars(screen, data, font, highlight=[j, j + 1], min_elev=min_elev, max_elev=max_elev)
+                metrics["swaps"] += 1
+            draw_bars(screen, data, font, highlight=[j, j + 1], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
             pygame.display.flip()
             pygame.time.wait(5)
 
-    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev)
-    pygame.display.flip()
 
-def quick_sort_visualized(data, screen, clock):
+
+def quick_sort_visualized(data, screen, clock, metrics, color_theme):
     font = pygame.font.SysFont("Arial", 14)
     min_elev = min(e[2] for e in data)
     max_elev = max(e[2] for e in data)
@@ -159,20 +172,24 @@ def quick_sort_visualized(data, screen, clock):
         pivot = arr[high]
         i = low - 1
         for j in range(low, high):
-            draw_bars(screen, arr, font, highlight=[j, high], min_elev=min_elev, max_elev=max_elev)
+            metrics["comparisons"] += 1
+            draw_bars(screen, arr, font, highlight=[j, high], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
             pygame.display.flip()
             time.sleep(0.01)
             if stable_key(arr[j]) < stable_key(pivot):
                 i += 1
                 arr[i], arr[j] = arr[j], arr[i]
+                metrics["swaps"] += 1
         arr[i + 1], arr[high] = arr[high], arr[i + 1]
+        metrics["swaps"] += 1
         return i + 1
 
     quick_sort(data, 0, len(data) - 1)
-    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev)
+
+    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
     pygame.display.flip()
 
-def merge_sort_visualized(data, screen, clock):
+def merge_sort_visualized(data, screen, clock, metrics, color_theme):
     font = pygame.font.SysFont("Arial", 14)
     min_elev = min(e[2] for e in data)
     max_elev = max(e[2] for e in data)
@@ -190,36 +207,43 @@ def merge_sort_visualized(data, screen, clock):
         i = j = 0
         k = l
         while i < len(left) and j < len(right):
+            metrics["comparisons"] += 1
             if stable_key(left[i]) <= stable_key(right[j]):
                 arr[k] = left[i]
                 i += 1
             else:
                 arr[k] = right[j]
                 j += 1
-            draw_bars(screen, data, font, highlight=[k], min_elev=min_elev, max_elev=max_elev)
+            metrics["swaps"] += 1
+            draw_bars(screen, data, font, highlight=[k], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
             pygame.display.flip()
             time.sleep(0.01)
             k += 1
         while i < len(left):
             arr[k] = left[i]
             i += 1
-            draw_bars(screen, data, font, highlight=[k], min_elev=min_elev, max_elev=max_elev)
+            metrics["swaps"] += 1
+            draw_bars(screen, data, font, highlight=[k], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
             pygame.display.flip()
             time.sleep(0.01)
             k += 1
         while j < len(right):
             arr[k] = right[j]
             j += 1
-            draw_bars(screen, data, font, highlight=[k], min_elev=min_elev, max_elev=max_elev)
+            metrics["swaps"] += 1
+            draw_bars(screen, data, font, highlight=[k], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
             pygame.display.flip()
             time.sleep(0.01)
             k += 1
 
     merge_sort(data, 0, len(data) - 1)
-    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev)
+
+    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
     pygame.display.flip()
 
-def insertion_sort_visualized(data, screen, clock):
+
+
+def insertion_sort_visualized(data, screen, clock, metrics, color_theme):
     font = pygame.font.SysFont("Arial", 14)
     min_elev = min(e[2] for e in data)
     max_elev = max(e[2] for e in data)
@@ -227,17 +251,25 @@ def insertion_sort_visualized(data, screen, clock):
     for i in range(1, len(data)):
         key = data[i]
         j = i - 1
-        while j >= 0 and stable_key(data[j]) > stable_key(key):
-            data[j + 1] = data[j]
-            j -= 1
-            draw_bars(screen, data, font, highlight=[j + 1], min_elev=min_elev, max_elev=max_elev)
-            pygame.display.flip()
-            pygame.time.wait(10)
+        while j >= 0:
+            metrics["comparisons"] += 1
+            if stable_key(data[j]) > stable_key(key):
+                data[j + 1] = data[j]
+                j -= 1
+                metrics["swaps"] += 1
+                draw_bars(screen, data, font, highlight=[j + 1], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
+                pygame.display.flip()
+                pygame.time.wait(10)
+            else:
+                break
         data[j + 1] = key
-    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev)
+        metrics["swaps"] += 1
+
+    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
     pygame.display.flip()
 
-def selection_sort_visualized(data, screen, clock):
+
+def selection_sort_visualized(data, screen, clock, metrics, color_theme):
     font = pygame.font.SysFont("Arial", 14)
     min_elev = min(e[2] for e in data)
     max_elev = max(e[2] for e in data)
@@ -246,16 +278,21 @@ def selection_sort_visualized(data, screen, clock):
     for i in range(n):
         min_idx = i
         for j in range(i + 1, n):
+            metrics["comparisons"] += 1
             if stable_key(data[j]) < stable_key(data[min_idx]):
                 min_idx = j
-            draw_bars(screen, data, font, highlight=[j, min_idx], min_elev=min_elev, max_elev=max_elev)
+            draw_bars(screen, data, font, highlight=[j, min_idx], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
             pygame.display.flip()
             pygame.time.wait(10)
-        data[i], data[min_idx] = data[min_idx], data[i]
-    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev)
+        if i != min_idx:
+            data[i], data[min_idx] = data[min_idx], data[i]
+            metrics["swaps"] += 1
+
+    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
     pygame.display.flip()
 
-def heap_sort_visualized(data, screen, clock):
+
+def heap_sort_visualized(data, screen, clock, metrics, color_theme):
     font = pygame.font.SysFont("Arial", 14)
     min_elev = min(e[2] for e in data)
     max_elev = max(e[2] for e in data)
@@ -264,13 +301,18 @@ def heap_sort_visualized(data, screen, clock):
         largest = i
         l = 2 * i + 1
         r = 2 * i + 2
-        if l < n and stable_key(arr[l]) > stable_key(arr[largest]):
-            largest = l
-        if r < n and stable_key(arr[r]) > stable_key(arr[largest]):
-            largest = r
+        if l < n:
+            metrics["comparisons"] += 1
+            if stable_key(arr[l]) > stable_key(arr[largest]):
+                largest = l
+        if r < n:
+            metrics["comparisons"] += 1
+            if stable_key(arr[r]) > stable_key(arr[largest]):
+                largest = r
         if largest != i:
             arr[i], arr[largest] = arr[largest], arr[i]
-            draw_bars(screen, data, font, highlight=[i, largest], min_elev=min_elev, max_elev=max_elev)
+            metrics["swaps"] += 1
+            draw_bars(screen, data, font, highlight=[i, largest], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
             pygame.display.flip()
             pygame.time.wait(10)
             heapify(arr, n, largest)
@@ -280,14 +322,19 @@ def heap_sort_visualized(data, screen, clock):
         heapify(data, n, i)
     for i in range(n - 1, 0, -1):
         data[i], data[0] = data[0], data[i]
-        draw_bars(screen, data, font, highlight=[0, i], min_elev=min_elev, max_elev=max_elev)
+        metrics["swaps"] += 1
+        draw_bars(screen, data, font, highlight=[0, i], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
         pygame.display.flip()
         pygame.time.wait(10)
         heapify(data, i, 0)
-    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev)
+
+
+    draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
     pygame.display.flip()
 
+
 def run_visualizer(data, default_sort_func, rows, cols):
+    import random
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Elevation Sort Visualizer")
@@ -303,7 +350,9 @@ def run_visualizer(data, default_sort_func, rows, cols):
         "Bubble": bubble_sort_visualized
     }
 
-    # Create button rects
+    color_themes = ["terrain", "grayscale", "heat"]
+    current_theme_index = 0
+
     button_width = 100
     button_height = 25
     buttons = []
@@ -316,60 +365,70 @@ def run_visualizer(data, default_sort_func, rows, cols):
     running = True
 
     data, summary_lines = reset_visualization_state(data, rows, cols)
-    original_data = data.copy()  # 🔁 Store original unsorted data
+    original_data = data.copy()
+    working_data = original_data.copy()
     sort_duration = 0
+    metrics = {"comparisons": 0, "swaps": 0}
 
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-            if event.type == pygame.KEYDOWN:
+            elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
                     data, summary_lines = reset_visualization_state(data, rows, cols)
                     original_data = data.copy()
+                    working_data = original_data.copy()
                     sorted_once = False
                     current_sort = None
                     sort_duration = 0
+                    metrics = {"comparisons": 0, "swaps": 0}
+                elif event.key == pygame.K_s:
+                    random.shuffle(working_data)
+                    sorted_once = False
+                    current_sort = None
+                    sort_duration = 0
+                    metrics = {"comparisons": 0, "swaps": 0}
+                    summary_lines = get_summary_text(working_data)
+                elif event.key == pygame.K_c:
+                    current_theme_index = (current_theme_index + 1) % len(color_themes)
                 elif event.key == pygame.K_ESCAPE:
                     running = False
 
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            elif event.type == pygame.MOUSEBUTTONDOWN:
                 mx, my = pygame.mouse.get_pos()
                 for rect, name in buttons:
                     if rect.collidepoint(mx, my):
                         current_sort = sort_funcs[name]
-                        data = original_data.copy()  # 🔁 Reset data before each sort
+                        working_data = working_data.copy()
                         sorted_once = False
                         sort_duration = 0
-                        print(f"Selected: {name} Sort")
+                        metrics = {"comparisons": 0, "swaps": 0}
 
         if current_sort and not sorted_once:
-            # ✅ Show pre/post comparison
-            original_copy = original_data.copy()
+            original_copy = working_data.copy()
             start_time = time.time()
-            current_sort(data, screen, clock)
+            current_sort(working_data, screen, clock, metrics, color_themes[current_theme_index])
             sort_duration = time.time() - start_time
             sorted_once = True
-            summary_lines = get_summary_text(data)
-            show_comparison_heatmap(original_copy, data, rows, cols)
+            summary_lines = get_summary_text(working_data)
+            show_comparison_heatmap(original_copy, working_data, rows, cols)
 
-        # Hover bar info
+        # Hover
         mouse_x, _ = pygame.mouse.get_pos()
-        bar_width = max(1, WIDTH // len(data))
+        bar_width = max(1, WIDTH // len(working_data))
         hover_index = mouse_x // bar_width if bar_width else None
-        draw_bars(screen, data, font, hover_index=hover_index)
 
+        draw_bars(screen, working_data, font, hover_index=hover_index, color_theme=color_themes[current_theme_index])
 
         # Draw buttons
         for rect, name in buttons:
             color = (200, 50, 50) if sort_funcs[name] == current_sort else (50, 50, 200)
             pygame.draw.rect(screen, color, rect)
             label = font.render(name, True, (255, 255, 255))
-            label_rect = label.get_rect(center=rect.center)
-            screen.blit(label, label_rect)
+            screen.blit(label, label.get_rect(center=rect.center))
 
-        # Draw summary + time
         for i, line in enumerate(summary_lines):
             label = font.render(line, True, (255, 255, 255))
             screen.blit(label, (10, 50 + i * 20))
@@ -377,17 +436,21 @@ def run_visualizer(data, default_sort_func, rows, cols):
         if current_sort and sorted_once:
             label_time = font.render(f"Sort Time: {sort_duration:.2f}s", True, (255, 255, 255))
             screen.blit(label_time, (10, 50 + len(summary_lines) * 20))
+            label_comp = font.render(f"Comparisons: {metrics['comparisons']}", True, (255, 255, 255))
+            screen.blit(label_comp, (10, 50 + len(summary_lines) * 20 + 20))
+            label_swaps = font.render(f"Swaps: {metrics['swaps']}", True, (255, 255, 255))
+            screen.blit(label_swaps, (10, 50 + len(summary_lines) * 20 + 40))
 
-
-
-        if hover_index is not None and 0 <= hover_index < len(data):
-            lat, lon, elev, _ = data[hover_index]
+        if hover_index is not None and 0 <= hover_index < len(working_data):
+            lat, lon, elev, _ = working_data[hover_index]
             hover_label = font.render(f"{lat:.2f}, {lon:.2f} → {elev:.2f} m", True, (255, 255, 0))
-            screen.blit(hover_label, (WIDTH - 250, HEIGHT - 40))
+            screen.blit(hover_label, (WIDTH - 260, HEIGHT - 40))
 
-        footer = font.render("R = Reset   |   ESC = Quit   |   Click a sort button", True, (180, 180, 180))
+        footer = font.render("R = Reset | S = Shuffle | C = Theme | ESC = Quit | Click a sort", True, (180, 180, 180))
         screen.blit(footer, (10, HEIGHT - 20))
 
         pygame.display.flip()
 
     pygame.quit()
+
+
