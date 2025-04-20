@@ -30,7 +30,7 @@ def main():
     # Show the elevation heatmap
     show_elevation_heatmap(elevation_list, rows, cols)
 
-    # Sorting algorithm selection menu
+    # Algorithm selection menu
     print("\nChoose a sorting algorithm to visualize:")
     print("1. Quick Sort")
     print("2. Merge Sort")
@@ -51,11 +51,9 @@ def main():
     algo_name, algo_func = algo_map.get(choice, ("Quick Sort (default)", quick_sort_visualized))
     print(f"\nRunning: {algo_name}...\n")
 
-    # Add original index for sorting stability
-    elevation_list = [(lat, lon, elev, idx) for idx, (lat, lon, elev) in enumerate(elevation_list)]
-
-    # Run the visualization with full context
-    run_visualizer(elevation_list, algo_func, rows, cols)
+    # Add indexing for stable sorting
+    indexed_list = [(lat, lon, elev, idx) for idx, (lat, lon, elev) in enumerate(elevation_list)]
+    run_visualizer(indexed_list, algo_func, rows, cols)
 
 if __name__ == "__main__":
     main()
