@@ -49,18 +49,31 @@ def draw_bars(screen, data, font, highlight=[], min_elev=None, max_elev=None, ho
 
         pygame.draw.rect(screen, color, (x, y, bar_width, height))
 
-    draw_color_legend(screen, font)
+    draw_color_legend(screen, font, color_theme)
 
 
-
-def draw_color_legend(screen, font):
+def draw_color_legend(screen, font, color_theme):
     legend_rect = pygame.Rect(10, HEIGHT - 30, 200, 10)
+
     for x in range(legend_rect.width):
         norm = x / legend_rect.width
-        red = int(255 * norm)
-        green = int(255 * (1 - abs(norm - 0.5) * 2))
-        blue = int(255 * (1 - norm))
-        color = (red, green, blue)
+
+        # Match color theme
+        if color_theme == "terrain":
+            red = int(255 * norm)
+            green = int(255 * (1 - abs(norm - 0.5) * 2))
+            blue = int(255 * (1 - norm))
+            color = (red, green, blue)
+        elif color_theme == "grayscale":
+            shade = int(255 * norm)
+            color = (shade, shade, shade)
+        elif color_theme == "heat":
+            import matplotlib.pyplot as plt
+            cmap_color = plt.cm.inferno(norm)
+            color = tuple(int(c * 255) for c in cmap_color[:3])
+        else:
+            color = (255, 255, 255)
+
         screen.set_at((legend_rect.x + x, legend_rect.y), color)
 
     label_low = font.render("Low", True, (255, 255, 255))
@@ -149,8 +162,9 @@ def bubble_sort_visualized(data, screen, clock, metrics, color_theme):
         for j in range(0, len(data) - i - 1):
             metrics["comparisons"] += 1
             if stable_key(data[j]) > stable_key(data[j + 1]):
-                data[j], data[j + 1] = data[j + 1], data[j]
-                metrics["swaps"] += 1
+                if data[j] != data[j + 1]:
+                    data[j], data[j + 1] = data[j + 1], data[j]
+                    metrics["swaps"] += 1
             draw_bars(screen, data, font, highlight=[j, j + 1], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
             pygame.display.flip()
             pygame.time.wait(5)
@@ -178,10 +192,12 @@ def quick_sort_visualized(data, screen, clock, metrics, color_theme):
             time.sleep(0.01)
             if stable_key(arr[j]) < stable_key(pivot):
                 i += 1
-                arr[i], arr[j] = arr[j], arr[i]
-                metrics["swaps"] += 1
-        arr[i + 1], arr[high] = arr[high], arr[i + 1]
-        metrics["swaps"] += 1
+                if arr[i] != arr[j]:
+                    arr[i], arr[j] = arr[j], arr[i]
+                    metrics["swaps"] += 1
+        if arr[i + 1] != arr[high]:
+            arr[i + 1], arr[high] = arr[high], arr[i + 1]
+            metrics["swaps"] += 1
         return i + 1
 
     quick_sort(data, 0, len(data) - 1)
@@ -208,32 +224,41 @@ def merge_sort_visualized(data, screen, clock, metrics, color_theme):
         k = l
         while i < len(left) and j < len(right):
             metrics["comparisons"] += 1
+            new_val = left[i] if stable_key(left[i]) <= stable_key(right[j]) else right[j]
+            if arr[k] != new_val:
+                arr[k] = new_val
+                metrics["swaps"] += 1
+            else:
+                arr[k] = new_val
+            draw_bars(screen, data, font, highlight=[k], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
+            pygame.display.flip()
+            time.sleep(0.01)
+            k += 1
             if stable_key(left[i]) <= stable_key(right[j]):
-                arr[k] = left[i]
                 i += 1
             else:
-                arr[k] = right[j]
                 j += 1
-            metrics["swaps"] += 1
-            draw_bars(screen, data, font, highlight=[k], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
-            pygame.display.flip()
-            time.sleep(0.01)
-            k += 1
         while i < len(left):
-            arr[k] = left[i]
-            i += 1
-            metrics["swaps"] += 1
+            if arr[k] != left[i]:
+                arr[k] = left[i]
+                metrics["swaps"] += 1
+            else:
+                arr[k] = left[i]
             draw_bars(screen, data, font, highlight=[k], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
             pygame.display.flip()
             time.sleep(0.01)
+            i += 1
             k += 1
         while j < len(right):
-            arr[k] = right[j]
-            j += 1
-            metrics["swaps"] += 1
+            if arr[k] != right[j]:
+                arr[k] = right[j]
+                metrics["swaps"] += 1
+            else:
+                arr[k] = right[j]
             draw_bars(screen, data, font, highlight=[k], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
             pygame.display.flip()
             time.sleep(0.01)
+            j += 1
             k += 1
 
     merge_sort(data, 0, len(data) - 1)
@@ -254,16 +279,22 @@ def insertion_sort_visualized(data, screen, clock, metrics, color_theme):
         while j >= 0:
             metrics["comparisons"] += 1
             if stable_key(data[j]) > stable_key(key):
-                data[j + 1] = data[j]
+                if data[j + 1] != data[j]:
+                    data[j + 1] = data[j]
+                    metrics["swaps"] += 1
+                else:
+                    data[j + 1] = data[j]
                 j -= 1
-                metrics["swaps"] += 1
                 draw_bars(screen, data, font, highlight=[j + 1], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
                 pygame.display.flip()
                 pygame.time.wait(10)
             else:
                 break
-        data[j + 1] = key
-        metrics["swaps"] += 1
+        if data[j + 1] != key:
+            data[j + 1] = key
+            metrics["swaps"] += 1
+
+
 
     draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
     pygame.display.flip()
@@ -284,9 +315,10 @@ def selection_sort_visualized(data, screen, clock, metrics, color_theme):
             draw_bars(screen, data, font, highlight=[j, min_idx], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
             pygame.display.flip()
             pygame.time.wait(10)
-        if i != min_idx:
+        if i != min_idx and data[i] != data[min_idx]:
             data[i], data[min_idx] = data[min_idx], data[i]
             metrics["swaps"] += 1
+
 
     draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
     pygame.display.flip()
@@ -310,8 +342,9 @@ def heap_sort_visualized(data, screen, clock, metrics, color_theme):
             if stable_key(arr[r]) > stable_key(arr[largest]):
                 largest = r
         if largest != i:
-            arr[i], arr[largest] = arr[largest], arr[i]
-            metrics["swaps"] += 1
+            if arr[i] != arr[largest]:
+                arr[i], arr[largest] = arr[largest], arr[i]
+                metrics["swaps"] += 1
             draw_bars(screen, data, font, highlight=[i, largest], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
             pygame.display.flip()
             pygame.time.wait(10)
@@ -321,12 +354,14 @@ def heap_sort_visualized(data, screen, clock, metrics, color_theme):
     for i in range(n // 2 - 1, -1, -1):
         heapify(data, n, i)
     for i in range(n - 1, 0, -1):
-        data[i], data[0] = data[0], data[i]
-        metrics["swaps"] += 1
+        if data[i] != data[0]:
+            data[i], data[0] = data[0], data[i]
+            metrics["swaps"] += 1
         draw_bars(screen, data, font, highlight=[0, i], min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
         pygame.display.flip()
         pygame.time.wait(10)
         heapify(data, i, 0)
+
 
 
     draw_bars(screen, data, font, min_elev=min_elev, max_elev=max_elev, color_theme=color_theme)
